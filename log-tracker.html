@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Log Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2335;
+    --border: #2a3050;
+    --border-active: #3d4f8a;
+    --red: #cc3333;
+    --red-hat: #e00;
+    --accent: #4a7cdc;
+    --accent-dim: #2a4a8a;
+    --green: #2ecc71;
+    --green-dim: #1a5e38;
+    --yellow: #f0a500;
+    --text: #d4d8e8;
+    --text-dim: #6a7090;
+    --text-label: #8890b0;
+    --done-bg: #0d1a10;
+    --done-border: #1a3020;
+    --done-text: #3a5a40;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--red-hat);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .rh-logo {
+    width: 36px; height: 36px;
+    background: var(--red-hat);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 13px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  header .subtitle {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+  }
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .live-clock {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+  .case-count {
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--accent-dim);
+  }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 24px;
+  }
+
+  /* ── Add case panel ── */
+  .add-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .add-panel h2 {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-label);
+    margin-bottom: 16px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .form-group label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-label);
+  }
+  .form-group input,
+  .form-group textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: none;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    border-color: var(--accent);
+  }
+  .ip-display {
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: 3px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    user-select: none;
+    pointer-events: none;
+  }
+  .ip-display .lock-icon {
+    font-size: 11px;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+  .ip-display .ip-val {
+    flex: 1;
+  }
+  .ip-display .locked-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1px 5px;
+  }
+  .form-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .form-actions {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .btn-add {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 9px 22px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s;
+  }
+  .btn-add:hover { background: #5a8ce0; }
+  .err-msg {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--red);
+    display: none;
+  }
+
+  /* ── Section labels ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Case card ── */
+  #active-list, #done-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .case-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 16px 18px;
+    animation: slideIn 0.25s ease;
+    transition: border-color 0.2s;
+  }
+  .case-card:hover {
+    border-color: var(--border-active);
+    border-left-color: var(--accent);
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .case-card.done-card {
+    background: var(--done-bg);
+    border-color: var(--done-border);
+    border-left-color: var(--green-dim);
+    opacity: 0.7;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .case-id-badge {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 9px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+  }
+  .done-card .case-id-badge {
+    color: var(--green);
+    background: var(--green-dim);
+  }
+  .case-meta {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    align-items: center;
+  }
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .meta-item .val {
+    color: var(--text);
+    font-size: 12px;
+  }
+  .meta-item .key {
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-size: 10px;
+  }
+
+  /* IP locked badge */
+  .ip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .ip-badge .lock { font-size: 10px; opacity: 0.6; }
+  .done-ip-badge {
+    background: var(--green-dim);
+    border-color: #1e5030;
+    color: var(--green);
+  }
+
+  .card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .field-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 10px;
+  }
+  .field-block .flabel {
+    font-family: var(--mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .field-block .fval {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    word-break: break-all;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  .field-block .fval.path-val {
+    color: var(--yellow);
+  }
+
+  /* notes editable */
+  .notes-area {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    min-height: 36px;
+  }
+  .notes-area::placeholder { color: var(--text-dim); }
+  .notes-area:focus { color: #fff; }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-done {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid #1e5030;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 5px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s;
+  }
+  .btn-done:hover { background: #1a6040; }
+  .btn-done:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .btn-delete {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+  .btn-delete:hover { border-color: var(--red); color: var(--red); }
+
+  .done-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+    margin-left: 4px;
+  }
+  .done-status .dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* countdown */
+  .countdown {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+  .countdown.warn { color: var(--red); }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 32px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    display: none;
+  }
+
+  /* done section */
+  .done-section { margin-top: 8px; }
+
+  /* scrollfade for done */
+  .done-fade {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+  .done-fade.expanded { max-height: 9999px; }
+
+  .toggle-done {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    margin-left: 8px;
+  }
+  .toggle-done:hover { color: var(--text); }
+
+  @media (max-width: 680px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-row2 { grid-template-columns: 1fr; }
+    .card-body { grid-template-columns: 1fr; }
+    .card-top { flex-wrap: wrap; }
+  }
+
+  .modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+ 
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  padding: 24px;
+  border-radius: 6px;
+  width: 420px;
+  max-width: 90%;
+}
+ 
+.modal-content h3 {
+  margin-bottom: 12px;
+  font-family: var(--mono);
+}
+ 
+.modal-content p {
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+ 
+.modal-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+</style>
+</head>
+<body>
+<div id="confirmModal" class="modal">
+<div class="modal-content">
+<h3>Confirm Completion</h3>
+<p>
+      Are you sure you want to mark this case as completed?<br>
+      It will be automatically deleted after 60 seconds.
+</p>
+ 
+    <div class="modal-actions">
+<button id="yesBtn" class="btn-done">Yes</button>
+<button id="noBtn" class="btn-delete">No</button>
+</div>
+</div>
+</div>
+<header>
+  <div class="rh-logo">RH</div>
+  <div>
+    <h1>IT Log Tracker</h1>
+    <div class="subtitle">Internal case &amp; path management</div>
+  </div>
+  <div class="header-right">
+    <div class="live-clock" id="clock">--:--:--</div>
+    <div class="case-count" id="case-count">0 active</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Add Case Panel -->
+  <div class="add-panel">
+    <h2>// New Case</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Case ID</label>
+        <input type="text" id="inp-case-id" placeholder="e.g. INC-2041" maxlength="40" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>Uploader IP <span style="color:var(--green);font-size:9px;">● AUTO-DETECTED</span></label>
+        <div class="ip-display" title="Auto-detected — cannot be edited">
+          <span class="lock-icon">🔒</span>
+          <span class="ip-val" id="inp-ip">detecting…</span>
+          <span class="locked-label">locked</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Log Path on Server</label>
+        <input type="text" id="inp-path" placeholder="/var/log/app/case-2041.log" autocomplete="off" />
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="inp-notes" rows="2" placeholder="Any initial notes about this case…"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-add" onclick="addCase()">+ Add Case</button>
+      <span class="err-msg" id="err-msg">Case ID and log path are required.</span>
+    </div>
+  </div>
+
+  <!-- Active Cases -->
+  <div class="section-label">Active Cases</div>
+  <div id="active-list"></div>
+  <div class="empty-state" id="empty-active">No active cases. Add one above ↑</div>
+
+  <!-- Done Cases -->
+  <div class="done-section">
+    <div class="section-label">
+      Completed
+      <button class="toggle-done" onclick="toggleDone()" id="toggle-btn">show</button>
+    </div>
+    <div class="done-fade" id="done-fade">
+      <div id="done-list"></div>
+      <div class="empty-state" id="empty-done">No completed cases yet.</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── State ──────────────────────────────────────
+let cases = JSON.parse(localStorage.getItem('it_log_cases') || '[]');
+
+// ── Clock ──────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-GB', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Detect client IP (best-effort, via WebRTC) ──
+let detectedIP = 'detecting…';
+  function setIP(val) {
+    detectedIP = val;
+    document.getElementById('inp-ip').textContent = val;
+  }
+ async function detectIP() {
+
+  try {
+
+    const response = await fetch('get-ip.php');
+
+    const data = await response.json();
+
+    setIP(data.ip);
+
+  } catch (err) {
+
+    setIP('Unable to detect');
+
+  }
+
+}
+ 
+detectIP();
+ 
+
+// ── Save / Load ────────────────────────────────
+function save() {
+  localStorage.setItem('it_log_cases', JSON.stringify(cases));
+}
+
+// ── Add Case ────────────────────────────────────
+function addCase() {
+  const caseId = document.getElementById('inp-case-id').value.trim();
+  const path   = document.getElementById('inp-path').value.trim();
+  const notes  = document.getElementById('inp-notes').value.trim();
+  const ip     = document.getElementById('inp-ip').textContent || detectedIP;
+
+  const err = document.getElementById('err-msg');
+
+  if (!caseId || !path) {
+    err.style.display = 'inline';
+    setTimeout(() => err.style.display = 'none', 3000);
+    return;
+  }
+  err.style.display = 'none';
+
+  const c = {
+    id: Date.now(),
+    caseId,
+    path,
+    notes,
+    ip,
+    createdAt: new Date().toISOString(),
+    done: false,
+    doneAt: null,
+    deleteAt: null
+  };
+  cases.unshift(c);
+  save();
+
+  // Clear fields
+  document.getElementById('inp-case-id').value = '';
+  document.getElementById('inp-path').value = '';
+  document.getElementById('inp-notes').value = '';
+
+  render();
+}
+
+// ── Mark Done ──────────────────────────────────
+function markDone(id) {
+  const c = cases.find(x => x.id === id);
+  if (!c || c.done) return;
+  c.done = true;
+  c.doneAt = new Date().toISOString();
+  c.doneIp = detectedIP;
+  c.deleteAt = Date.now() + 60 * 1000; // 60 seconds from now
+  save();
+  render();
+}
+
+// ── Delete ─────────────────────────────────────
+function deleteCase(id) {
+  cases = cases.filter(x => x.id !== id);
+  save();
+  render();
+}
+
+// ── Update Notes ───────────────────────────────
+function updateNotes(id, val) {
+  const c = cases.find(x => x.id === id);
+  if (c) { c.notes = val; save(); }
+}
+
+// ── Auto-delete countdown ──────────────────────
+setInterval(() => {
+  const now = Date.now();
+  let changed = false;
+  cases.forEach(c => {
+    if (c.done && c.deleteAt && now >= c.deleteAt) {
+      changed = true;
+    }
+  });
+  if (changed) {
+    cases = cases.filter(c => !(c.done && c.deleteAt && now >= c.deleteAt));
+    save();
+    render();
+  } else {
+    // Just refresh countdowns
+    cases.forEach(c => {
+      if (c.done && c.deleteAt) {
+        const el = document.getElementById('cd-' + c.id);
+        if (el) {
+          const secs = Math.max(0, Math.ceil((c.deleteAt - Date.now()) / 1000));
+          el.textContent = 'Auto-delete in ' + secs + 's';
+          el.className = 'countdown' + (secs < 15 ? ' warn' : '');
+        }
+      }
+    });
+  }
+}, 1000);
+
+// ── Toggle done section ────────────────────────
+let doneExpanded = false;
+function toggleDone() {
+  doneExpanded = !doneExpanded;
+  document.getElementById('done-fade').classList.toggle('expanded', doneExpanded);
+  document.getElementById('toggle-btn').textContent = doneExpanded ? 'hide' : 'show';
+}
+
+// ── Render ─────────────────────────────────────
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function render() {
+  const active = cases.filter(c => !c.done);
+  const done   = cases.filter(c => c.done);
+
+  // Update header count
+  document.getElementById('case-count').textContent = active.length + ' active';
+
+  // Empty states
+  document.getElementById('empty-active').style.display = active.length ? 'none' : 'block';
+  document.getElementById('empty-done').style.display   = done.length   ? 'none' : 'block';
+
+  // Active
+  document.getElementById('active-list').innerHTML = active.map(cardHTML).join('');
+  document.getElementById('done-list').innerHTML   = done.map(cardHTML).join('');
+}
+
+let pendingDoneId = null;
+ 
+function confirmDone(id) {
+  pendingDoneId = id;
+  document.getElementById('confirmModal').style.display = 'flex';
+}
+ 
+document.getElementById('yesBtn').onclick = () => {
+  if (pendingDoneId) {
+    markDone(pendingDoneId);
+  }
+  pendingDoneId = null;
+  document.getElementById('confirmModal').style.display = 'none';
+};
+ 
+document.getElementById('noBtn').onclick = () => {
+  pendingDoneId = null;
+  document.getElementById('confirmModal').style.display = 'none';
+};
+
+function cardHTML(c) {
+  const isDone = c.done;
+  const secs = isDone && c.deleteAt ? Math.max(0, Math.ceil((c.deleteAt - Date.now()) / 1000)) : null;
+
+  return `
+  <div class="case-card ${isDone ? 'done-card' : ''}" id="card-${c.id}">
+    <div class="card-top">
+      <span class="case-id-badge">${esc(c.caseId)}</span>
+      <div class="case-meta">
+        <div class="meta-item">
+          <span class="key">Uploaded by</span>
+          <span class="ip-badge"><span class="lock">🔒</span> ${esc(c.ip)}</span>
+        </div>
+        ${isDone && c.doneIp ? `<div class="meta-item">
+          <span class="key">Closed by</span>
+          <span class="ip-badge done-ip-badge"><span class="lock">✓</span> ${esc(c.doneIp)}</span>
+        </div>` : ''}
+        <div class="meta-item">
+          <span class="key">Added</span>
+          <span class="val">${formatDate(c.createdAt)}</span>
+        </div>
+        ${isDone ? `<div class="meta-item"><span class="key">Closed at</span><span class="val">${formatDate(c.doneAt)}</span></div>` : ''}
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="field-block">
+        <div class="flabel">Log Path on Server</div>
+        <div class="fval path-val">${esc(c.path)}</div>
+      </div>
+      <div class="field-block">
+        <div class="flabel">Notes</div>
+        <textarea
+          class="notes-area"
+          rows="2"
+          placeholder="Add notes…"
+          onchange="updateNotes(${c.id}, this.value)"
+          ${isDone ? 'readonly' : ''}
+        >${esc(c.notes)}</textarea>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      ${!isDone ? `
+        <button class="btn-done" onclick="confirmDone(${c.id})">✓ Mark Done</button>
+        <button class="btn-delete" onclick="deleteCase(${c.id})">Delete</button>
+      ` : `
+        <div class="done-status"><div class="dot"></div> Completed</div>
+        <button class="btn-delete" onclick="deleteCase(${c.id})">Remove</button>
+        <div class="countdown ${secs !== null && secs < 15 ? 'warn' : ''}" id="cd-${c.id}">
+          Auto-delete in ${secs}s
+        </div>
+      `}
+    </div>
+  </div>`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── Enter key on Case ID → focus path ─────────
+document.getElementById('inp-case-id').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('inp-path').focus();
+});
+document.getElementById('inp-path').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('inp-notes').focus();
+});
+
+// ── Init ────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
