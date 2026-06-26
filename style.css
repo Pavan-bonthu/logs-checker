@@ -250,6 +250,11 @@ main{width:100%;max-width:none;margin:0;padding:20px clamp(12px,3vw,40px);}
 
 }
  
+.btn-disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(1);
+}
 /* ════════════════════════════════════════════════
    RESPONSIVE — mobile & narrow screens
    ════════════════════════════════════════════════ */

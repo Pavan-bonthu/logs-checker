@@ -16,7 +16,6 @@
   </div>
   <div class="header-right">
     <div class="live-clock" id="clock">--:--:--</div>
-    <button class="btn-team" onclick="toggleTeamPanel()">⚙ Team IPs</button>
     <div class="case-count" id="case-count">0 active</div>
   </div>
 </header>
@@ -24,7 +23,7 @@
 <main>
 
 <!-- ── Team Config Panel ── -->
-<div class="team-panel" id="team-panel">
+<!-- <div class="team-panel" id="team-panel">
   <h2>// Team Members — IP → Name → Folder Mapping</h2>
   <div class="team-list" id="team-list"></div>
   <button class="btn-add-member" onclick="addTeamRow()">+ Add Team Member</button>
@@ -33,7 +32,7 @@
     <span class="team-hint">Each member gets /else/{name}/ on the server. IPs are matched automatically.</span>
   </div>
 </div>
-
+-->
 <!-- ── Add Case Panel ── -->
 <div class="add-panel">
   <h2>// New Case</h2>
@@ -120,8 +119,8 @@
 
 <script>
 // ════════════════════════════════════════════════
-// CONFIG — backend endpoint (same folder as this file)
-const API = 'upload.php';
+// CONFIG — back end endpoint (same folder as this file)
+const API = 'http://192.168.0.108:8080';
  
 //SFTP 
 const SFTP = {
@@ -130,10 +129,39 @@ const SFTP = {
   user: 'YOUR_SFTP_USERNAME',
   pass: 'YOUR_SFTP_PASSWORD'
 };
+const ADMIN_IPS = [
+'192.168.1.37',
+'192.168.0.170',
+'192.168.0.108',
+];
 
+function isAdmin() {
+  return ADMIN_IPS.includes(detectedIP);
+}
 // ════════════════════════════════════════════════
 // TEAM — stored in localStorage
-let team = JSON.parse(localStorage.getItem('it_team') || '[]');
+let team = [
+{name: 'pavan',   ip: '192.168.0.108'},
+{name: 'SIBHU',   ip: '192.168.1.37'},
+{name: 'LAVANYA',	ip: '192.168.0.133'},
+{name: 'ROJA',	ip: '192.168.0.159'},
+{name: 'KAVIN',	ip: '192.168.0.192'},
+{name: 'RENU',	ip: '192.168.0.140'},
+{name: 'DEEPANSHU',	ip: '192.168.0.153'},
+{name: 'KARUN',	ip: '192.168.0.205'},
+{name: 'KALYANI',	ip:	'192.168.0.149'},
+{name:'ARWINDH',	ip: '192.168.0.165'},
+{name:'SATHISKANNA',	ip:	'192.168.1.43'},
+{name:'SOMESHKARTHIK',	ip:	'192.168.0.209'},
+{name:'SONAM',	ip:	'192.168.0.200'},
+{name:'KARTHIKSHANKER'	,	ip:'192.168.0.195'},
+{name:'ANANYA M',	ip:	'192.168.1.206'},
+{name:'ANILKUMAR',	ip:	'192.168.0.199'},
+{name:'DARSHAN',	ip:	'192.168.0.191'},
+{name:'ARCHANA',	ip:	'192.168.0.170'},
+{name:'SURYA',	ip:	'192.168.0.136'}, ];
+
+localStorage.setItem('it_team', JSON.stringify(team));
 // team = [{name:'pavan', ip:'192.168.1.10'}, ...]
 
 function buildSftpLink(path) {
@@ -173,7 +201,7 @@ function matchOwner(ip) {
   document.getElementById('pp-owner').textContent  = member ? member.name : '?';
   updatePathPreview();
 }
-function detectIP() {
+/*function detectIP() {
   try {
     const pc = new RTCPeerConnection({iceServers:[]});
     pc.createDataChannel('');
@@ -189,7 +217,27 @@ function detectIP() {
       setIP('LAN/'+(navigator.userAgent.includes('Linux')?'LINUX':'HOST'));
   },3000);
 }
-detectIP();
+detectIP();*/API
+
+
+function detectIP() {
+  fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(d => setIP(d.ip))
+    .catch(() => {
+      // fallback to WebRTC for LAN
+      try {
+        const pc = new RTCPeerConnection({iceServers:[]});
+        pc.createDataChannel('');
+        pc.createOffer().then(o=>pc.setLocalDescription(o));
+        pc.onicecandidate = (e) => {
+          if (!e||!e.candidate) return;
+          const m = e.candidate.candidate.match(/(\d{1,3}(?:\.\d{1,3}){3})/);
+          if (m && !m[1].startsWith('0.')) { setIP(m[1]); pc.close(); }
+        };
+      } catch(e) { setIP('unknown'); }
+    });
+}
 
 // ── Path preview ───────────────────────────────
 function updatePathPreview() {
@@ -205,9 +253,9 @@ function getAutoPath() {
   return '/else/' + owner + '/' + caseId + '/';
 }
 
-// ════════════════════════════════════════════════
+/* ════════════════════════════════════════════════
 // TEAM PANEL
-function toggleTeamPanel() {
+//function toggleTeamPanel() {
   const p = document.getElementById('team-panel');
   p.classList.toggle('open');
   if (p.classList.contains('open')) renderTeamRows();
@@ -241,7 +289,7 @@ function saveTeam() {
   matchOwner(detectedIP);
   toast('Team saved — '+team.length+' member(s)');
 }
-
+*/
 // ════════════════════════════════════════════════
 // CASES
 let cases = JSON.parse(localStorage.getItem('it_log_cases')||'[]');
@@ -496,113 +544,266 @@ function fileIcon(name){
 
 
 function cardHTML(c) {
-  const isDone = c.done;
-  const secs =
-    isDone && c.deleteAt
-      ? Math.max(0, Math.ceil((c.deleteAt - Date.now()) / 1000))
-      : null;
+    const isDone = c.done;
 
-  const filesHTML = c.files.length
-    ? `<div class="file-list">
-        ${c.files.map(f => `
-          <div class="file-item">
-            <span class="file-icon">${fileIcon(f.name)}</span>
-            <span class="file-name" title="${esc(f.path || f.name)}">${esc(f.name)}</span>
-            <span class="file-size">${fmtSize(f.size || 0)}</span>
-            ${
-              !isDone
-                ? `<button class="btn-del-file" onclick="event.stopPropagation();deleteFile(${c.id},'${esc(f.name)}')">✕</button>`
-                : ''
-            }
-          </div>
-        `).join('')}
-      </div>`
-    : '';
+    const secs =
+        isDone && c.deleteAt
+            ? Math.max(0, Math.ceil((c.deleteAt - Date.now()) / 1000))
+            : null;
 
-  return `
-    <div class="case-card ${isDone ? 'done-card' : ''}" id="card-${c.id}">
+    const filesHTML = c.files.length
+        ? `
+        <div class="file-list">
+            ${c.files.map(f => `
+                <div class="file-item">
+                    <span class="file-icon">${fileIcon(f.name)}</span>
+                    <span class="file-name" title="${esc(f.path || f.name)}">
+                        ${esc(f.name)}
+                    </span>
+                    <span class="file-size">${fmtSize(f.size || 0)}</span>
 
-      <!-- ALWAYS VISIBLE — single compact line -->
-      <div class="card-top">
-        <span class="case-id-badge">${esc(c.caseId)}</span>
+                    ${
+                        !isDone
+                            ? `
+                            <button
+                                class="btn-del-file"
+                                onclick="event.stopPropagation();deleteFile(${c.id}, '${esc(f.name)}')">
+                                ✕
+                            </button>
+                            `
+                            : ''
+                    }
+                </div>
+            `).join('')}
+        </div>
+        `
+        : '';
 
-        ${c.owner ? `<span class="owner-badge">👤 ${esc(c.owner)}</span>` : ''}
+    return `
+<div class="case-card ${isDone ? 'done-card' : ''}" id="card-${c.id}">
 
-        <div class="meta-item">
-          <span class="key">By</span>
-          <span class="ip-badge">🔒 ${esc(c.ip)}</span>
-        </div>
+    <!-- ================= TOP HEADER ================= -->
 
-        <div class="meta-item">
-          <span class="key">Added</span>
-          <span class="val">${formatDate(c.createdAt)}</span>
-        </div>
-      </div>
+    <div class="card-top">
 
-      <!-- HIDDEN UNTIL CLICK -->
-      <div class="card-content">
+        <span class="case-id-badge">
+            ${esc(c.caseId)}
+        </span>
 
-        <div class="case-meta">
-          ${isDone && c.doneIp
-            ? `<div class="meta-item">
-                <span class="key">Closed by</span>
-                <span class="ip-badge done-ip-badge">✓ ${esc(c.doneIp)}</span>
-              </div>`
-            : ''}
-        </div>
+        ${
+            c.owner
+                ? `
+                <span class="owner-badge">
+                    👤 ${esc(c.owner)}
+                </span>
+                `
+                : ''
+        }
 
-        ${c.autoPath
-          ? `<div style="margin-bottom:10px;">
-              <div class="field-block" style="padding:7px 10px;">
-                <div class="flabel">Server Path</div>
-                <div class="path-row">
-                  <div class="fval path-val">${esc(c.autoPath)}</div>
-                  <a class="btn-go" href="${esc(buildSftpLink(c.autoPath))}" onclick="event.stopPropagation();" title="Open this folder in WinSCP">↗ Go</a>
-                </div>
-              </div>
-            </div>`
-          : ''}
-        ${c.autoPath
-        ? `<div style="margin-bottom:10px;">
-            <div class="field-block" style="padding:7px 10px;">
-              <div class="flabel">Upload More Files</div>
-              <div class="flabel"> Server Path</div>
-              <div class="path-row">
-                <div class="fval path-val">${esc(c.autoPath)}</div>
-                <a class="btn-go" href="${esc(buildSftpLink(c.autoPath)) }" onclick="event.stopPropagation();" title="Open this folder in WinSCP">↗ Go</a>
-              </div>
-              </div>
-              </div>`
-              :''  }
-        <div class="card-body">
-          <div class="field-block" style="grid-column:span 2">
-            <div class="flabel">Notes</div>
-            <textarea class="notes-area" rows="2" onchange="updateNotes(${c.id},this.value)" ${isDone ? 'readonly' : ''}>${esc(c.notes)}</textarea>
-          </div>
-        </div>
+        <div class="meta-item">
+            <span class="key">By</span>
+            <span class="ip-badge">
+                🔒 ${esc(c.ip)}
+            </span>
+        </div>
 
-        <div class="upload-section">
-          <div class="flabel">Files (${c.files.length})</div>
-          ${filesHTML || '<div>No files uploaded</div>'}
-        </div>
+        <div class="meta-item">
+            <span class="key">Added</span>
+            <span class="val">
+                ${formatDate(c.createdAt)}
+            </span>
+        </div>
 
-        <div class="card-footer">
-          ${
-            !isDone
-              ? `<button class="btn-done" onclick="event.stopPropagation();markDone(${c.id})">✓ Mark Done</button>
-                 <button class="btn-delete" onclick="event.stopPropagation();deleteCase(${c.id})">Delete</button>`
-              : `<div class="done-status">Completed</div>
-                 <button class="btn-delete" onclick="event.stopPropagation();deleteCase(${c.id})">Remove</button>
-                 <div class="countdown" id="cd-${c.id}">Auto-remove in ${secs}s</div>`
-          }
-        </div>
+    </div>
 
-      </div>
-    </div>
-  `;
+    <!-- ================= COLLAPSIBLE CONTENT ================= -->
+
+    <div class="card-content">
+
+        <!-- Closed By -->
+
+        <div class="case-meta">
+
+            ${
+                isDone && c.doneIp
+                    ? `
+                    <div class="meta-item">
+                        <span class="key">Closed by</span>
+                        <span class="ip-badge done-ip-badge">
+                            ✓ ${esc(c.doneIp)}
+                        </span>
+                    </div>
+                    `
+                    : ''
+            }
+
+        </div>
+
+        <!-- Server Path -->
+
+        ${
+            c.autoPath
+                ? `
+                <div style="margin-bottom:10px;">
+
+                    <div class="field-block" style="padding:7px 10px;">
+
+                        <div class="flabel">
+                            Server Path
+                        </div>
+
+                        <div class="path-row">
+
+                            <div class="fval path-val">
+                                ${esc(c.autoPath)}
+                            </div>
+
+                            <a
+                                class="btn-go"
+                                href="${esc(buildSftpLink(c.autoPath))}"
+                                onclick="event.stopPropagation();"
+                                title="Open this folder in WinSCP">
+                                ↗ Go
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                `
+                : ''
+        }
+
+        <!-- Upload More Files -->
+
+        ${
+            c.autoPath
+                ? `
+                <div style="margin-bottom:10px;">
+
+                    <div class="field-block" style="padding:7px 10px;">
+
+                        <div class="flabel">
+                            Upload More Files
+                        </div>
+
+                        <div class="flabel">
+                            Server Path
+                        </div>
+
+                        <div class="path-row">
+
+                            <div class="fval path-val">
+                                ${esc(c.autoPath)}
+                            </div>
+
+                            <a
+                                class="btn-go"
+                                href="${esc(buildSftpLink(c.autoPath))}"
+                                onclick="event.stopPropagation();"
+                                title="Open this folder in WinSCP">
+                                ↗ Go
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                `
+                : ''
+        }
+
+        <!-- Notes -->
+
+        <div class="card-body">
+
+            <div class="field-block" style="grid-column:span 2">
+
+                <div class="flabel">
+                    Notes
+                </div>
+
+                <textarea
+                    class="notes-area"
+                    rows="2"
+                    onchange="updateNotes(${c.id}, this.value)"
+                    ${isDone || !isAdmin() ? 'readonly' : ''}
+                    title="${!isAdmin() ? 'Admin access only' : ''}">
+                    ${esc(c.notes || '')}
+                </textarea>
+
+            </div>
+
+        </div>
+
+        <!-- Uploaded Files -->
+
+        <div class="upload-section">
+
+            <div class="flabel">
+                Files (${c.files.length})
+            </div>
+
+            ${filesHTML || '<div>No files uploaded</div>'}
+
+        </div>
+
+        <!-- Footer -->
+
+        <div class="card-footer">
+
+            ${
+                !isDone
+                    ? `
+                    <button
+                        class="btn-done ${!isAdmin() ? 'btn-disabled' : ''}"
+                        ${!isAdmin() ? 'disabled title="Admin access only"' : ''}
+                        onclick="event.stopPropagation();${isAdmin() ? 'markDone(' + c.id + ')' : ''}">
+
+                        ✓ Mark Done
+
+                    </button>
+
+                    <button
+                        class="btn-delete"
+                        onclick="event.stopPropagation();deleteCase(${c.id})">
+
+                        Delete
+
+                    </button>
+                    `
+                    : `
+                    <div class="done-status">
+                        Completed
+                    </div>
+
+                    <button
+                        class="btn-delete"
+                        onclick="event.stopPropagation();deleteCase(${c.id})">
+
+                        Remove
+
+                    </button>
+
+                    <div
+                        class="countdown"
+                        id="cd-${c.id}">
+
+                        Auto-remove in ${secs}s
+
+                    </div>
+                    `
+            }
+
+        </div>
+
+    </div>
+
+</div>
+`;
 }
-
-
 function esc(s){
   if(!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -613,8 +814,7 @@ document.getElementById('inp-case-id').addEventListener('keydown',e=>{
   if(e.key==='Enter') document.getElementById('inp-notes').focus();
 });
 
-// ── Init ───────────────────────────────────────
-renderTeamRows();
+// ── Init ───────────────────────────────────────renderTeamRows();
 render();
 </script>
 </body>
