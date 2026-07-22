@@ -120,7 +120,7 @@
 <script>
 // ════════════════════════════════════════════════
 // CONFIG — back end endpoint (same folder as this file)
-const API = 'http://192.168.0.108:8080';
+const API = 'http://localhost:6060';
  
 //SFTP 
 const SFTP = {
@@ -217,11 +217,15 @@ function matchOwner(ip) {
       setIP('LAN/'+(navigator.userAgent.includes('Linux')?'LINUX':'HOST'));
   },3000);
 }
-detectIP();*/API
+detectIP();*/
 
 
 function detectIP() {
-  fetch('https://api.ipify.org?format=json')
+  fetch('http://192.168.0.183:6060',{
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'get_ip' })
+  })
     .then(r => r.json())
     .then(d => setIP(d.ip))
     .catch(() => {
