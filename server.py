@@ -124,6 +124,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     body[key] = item.value
 
         action = body.get('action', '')
+        print(f'POST action: {action}, body: {body}')
 
         # ── GET IP ──────────────────────────────
         if action == 'get_ip':
