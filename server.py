@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import http.server, json, os, time, re, cgi
 
-BASE_DIR = 'D:/else/'
+BASE_DIR = '/var/www/html/logs-checker'
 PORT = 6060
-STATIC_DIR = 'D:/OneDrive - OmneNest Technologies Pvt Ltd/omnenest/logtracker'
+STATIC_DIR = '/var/www/html/logs-checker'
 
 class Handler(http.server.BaseHTTPRequestHandler):
 
